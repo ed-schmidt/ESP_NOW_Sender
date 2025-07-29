@@ -31,6 +31,8 @@
  *          3.3         5V    5V
  */
  // Board version 1.5 Changes to IO
+
+char BornOn[21] = "  Build   2025-07-29";
 // Set your Board ID (ESP32 Sender #1 = BOARD_ID 1, ESP32 Sender #2 = BOARD_ID 2, etc)
 #define BOARD_ID 6 //Garden board 2 is garage
 #define DHTPIN 13     // 7 Digital pin connected to the DHT sensor
@@ -58,7 +60,7 @@
 
 // Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
-char buffer[128] = "Startup message.";   // build output strings here
+char buffer[128];// = "  Build   2025-07-29";   // build output strings here
 DHT dht(DHTPIN, DHTTYPE);
 unsigned long downTime = 895e6;    //15 minutes - 5 seconds; 15 seconds = 15e6;
 //MAC Address of the receiver 
@@ -185,6 +187,9 @@ void OnDataSent(uint8_t *mac_addr, uint8_t sendStatus) {
      digitalWrite(DHTPWR, HIGH); // Turn on support devices
      printBattery();
      Serial.println(F("delay 2 seconds."));
+     Serial.println(BornOn);
+     displayWrite(0,1,2,BornOn,1);
+
      delay(2000);
         
       myData.id = BOARD_ID;
@@ -226,13 +231,13 @@ void OnDataSent(uint8_t *mac_addr, uint8_t sendStatus) {
       display.display();
       Serial.println(F("Done doing stuff."));
       delay(1000);
+      
  }  // done doing stuff
  
 void setup() {
   //Init Serial Monitor
   Serial.begin(115200);
   Serial.println("");
-  Serial.println(F("ESP_NOW_SENDER Build 2025-07-21"));
   pinMode(DHTPWR, OUTPUT);
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(LED_FAILURE, OUTPUT);
@@ -282,7 +287,8 @@ void setup() {
   esp_now_add_peer(broadcastAddress, ESP_NOW_ROLE_SLAVE, 1, NULL, 0);
   
   doStuff();
-  
+    Serial.println(buffer);
+
      if (digitalRead(TESTPin) == LOW)
         Serial.println(F("TESTPin is Low, In TEST MODE."));
      else
