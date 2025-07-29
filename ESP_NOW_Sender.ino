@@ -9,42 +9,23 @@
   copies or substantial portions of the Software.
 */
 
-/*Build 2025-06-10    -- Voltage divider was a nice idea but I don't know what the input voltage will be
-**                   -- changed to monitoring 3.3 line if it goes below max then it goes from 'good' to 'OK' if it is 15% less report 'Bad'
-*       2025-07-01  -- Changed IO to match home made PC Board layout
-*       2025-07-21  -- new PC Board Design
-*/
+//Build 2025-06-10    -- Voltage divider was a nice idea but I don't know what the input voltage will be
+//                   -- changed to monitoring 3.3 line if it goes below max then it goes from 'good' to 'OK' if it is 15% less report 'Bad'
+ 
 
 #include <espnow.h>
 #include <ESP8266WiFi.h>
 #include <Adafruit_SSD1306.h>
 #include <Adafruit_Sensor.h>
 #include <DHT.h>
-/*   GPIO - GPIO  Pin   PIN   GPIO
- *          RST         TX    1     OUTPUT
- *INPUT     ADC   A0    RX    3     INPUT
- *I/O       16    D0    D1    5     I/O
- *I/O       14    D5    D2    4     I/O
- *I/O       12    D6    D3    0     OUTPUT
- *I/O       13    D7    D4    2     OUTPUT
- *OUTPUT    15    D8    G     GND
- *          3.3         5V    5V
- */
- // Board version 1.5 Changes to IO
 
-char BornOn[21] = "  Build   2025-07-29";
 // Set your Board ID (ESP32 Sender #1 = BOARD_ID 1, ESP32 Sender #2 = BOARD_ID 2, etc)
 #define BOARD_ID 6 //Garden board 2 is garage
-#define DHTPIN 13     // 7 Digital pin connected to the DHT sensor
-#define DHTPWR 15     // D8  GPIO12 POWER TO TEMP SENSOR
-#define LED_FAILURE 0  // D3
-//#define LED_SUCCESS  2  // D4 BUILT-In is the inverse of this line
-// NOTE Update remove LED_Success and NOT the logic, remove Resistor also
-// D4 is the Built-in LED and can not be used for output unless you want the built-in LED turned 
-// set built-in (D4) high to turn it off
+#define DHTPIN 14     // D5 Digital pin connected to the DHT sensor
+#define DHTPWR 12     // D6  GPIO12 POWER TO TEMP SENSOR
+#define LED_FAILURE 13  // D7 GPIO13
+#define LED_SUCCESS  15  // D8 GPIO15
 
-#define PIR 12          // D6 GPIO13
-#define TESTPin 14      // D5 GPIO 14 see if I can use it for a test
 #define DHTTYPE    DHT22     // DHT 22 (AM2302)
 
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
@@ -60,7 +41,7 @@ char BornOn[21] = "  Build   2025-07-29";
 
 // Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
-char buffer[128];// = "  Build   2025-07-29";   // build output strings here
+char buffer[128] = "Startup message.";   // build output strings here
 DHT dht(DHTPIN, DHTTYPE);
 unsigned long downTime = 895e6;    //15 minutes - 5 seconds; 15 seconds = 15e6;
 //MAC Address of the receiver 
@@ -172,79 +153,30 @@ void OnDataSent(uint8_t *mac_addr, uint8_t sendStatus) {
   Serial.print("Last Packet Send Status: Delivery ");
   if (sendStatus == 0){
     sprintf(dataSent,"success");
+    digitalWrite(LED_SUCCESS, HIGH);
     digitalWrite(LED_FAILURE, LOW);
-    digitalWrite(LED_BUILTIN,LOW);  // turn it on
   }
   else{
     sprintf(dataSent," failed");
+    digitalWrite(LED_SUCCESS, LOW);
     digitalWrite(LED_FAILURE, HIGH);
-    digitalWrite(LED_BUILTIN,HIGH);  // turn it off
   }
     Serial.println(dataSent);
 }
-
- void doStuff(){
-     digitalWrite(DHTPWR, HIGH); // Turn on support devices
-     printBattery();
-     Serial.println(F("delay 2 seconds."));
-     Serial.println(BornOn);
-     displayWrite(0,1,2,BornOn,1);
-
-     delay(2000);
-        
-      myData.id = BOARD_ID;
-      myData.temp = readTemperature();
-      myData.hum = readHumidity();
-      myData.bat = readBattery();
-      myData.readingId = 0;
-    
-      Serial.print("\nTemp ");
-      Serial.println(myData.temp);  
-      Serial.print(F("Humidity "));
-      Serial.println(myData.hum);
-    
-      Serial.print(F("Board "));
-      Serial.println(BOARD_ID);
-            
-      esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
-      // 10 characters in a line, 4 lines at text size 2
-      if (displayOK){
-          sprintf(buffer,"Batt %2.0f   Temp  %2.0f  Humidit %2.0f",myData.bat, myData.temp,myData.hum);
-          displayWrite(0,1,2,buffer);
-      
-          display.setCursor(0,line5);  // line 5 on the display
-          display.print("Xmt");
-          display.setCursor(40,line5);
-          display.print(dataSent);
-          display.display();
-          delay(4000);
-           }
-         else
-          Serial.println(F("Problem writing to display."));
-    
-      digitalWrite(DHTPWR,LOW); // Hopefully DHT is low now
-      // turn off LEDs
-      digitalWrite(LED_FAILURE, LOW);
-      digitalWrite(LED_BUILTIN, HIGH);   // Turn it off
-      Serial.println(F("Bilt-in LED off"));
-      display.clearDisplay();
-      display.display();
-      Serial.println(F("Done doing stuff."));
-      delay(1000);
-      
- }  // done doing stuff
  
 void setup() {
   //Init Serial Monitor
   Serial.begin(115200);
   Serial.println("");
+  Serial.println(F("ESP_NOW_SENDER Build 2025-02-11"));
   pinMode(DHTPWR, OUTPUT);
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(LED_FAILURE, OUTPUT);
-  pinMode(TESTPin, INPUT);
+  pinMode(LED_SUCCESS, OUTPUT);
   
-//  digitalWrite(LED_BUILTIN, LOW);   // turn the LED on (Reverse logic)
-  digitalWrite(LED_FAILURE, LOW);  // WHY DON'T THESE TURN ON?
+  digitalWrite(LED_BUILTIN, LOW);   // turn the LED on (Reverse logic)
+  digitalWrite(LED_SUCCESS, HIGH);  //BOTH ON FOR TESTING
+  digitalWrite(LED_FAILURE, HIGH);  // WHY DON'T THESE TURN ON?
   digitalWrite(DHTPWR, HIGH); // Turn on support devices
   dht.begin();
 
@@ -285,37 +217,62 @@ void setup() {
   esp_now_register_send_cb(OnDataSent);
   
   esp_now_add_peer(broadcastAddress, ESP_NOW_ROLE_SLAVE, 1, NULL, 0);
-  
-  doStuff();
-    Serial.println(buffer);
 
-     if (digitalRead(TESTPin) == LOW)
-        Serial.println(F("TESTPin is Low, In TEST MODE."));
-     else
-        {
-        Serial.println(F("TESTPin is High, Deep Sleep Enabled."));
-        Serial.println(F("Shutting down now, but I'll be back."));
-        ESP.deepSleepInstant(downTime);          
-        }
-}
-  /********************* End of Setup *************/
-void testMenu()
-  {
-    int bytesRead = 0;
-    Serial.println(F("Test Menu"));
-    displayWrite(0,line1,1,"Test Menu make selection",1);
-//    if (Serial.available())
-//      {
-         bytesRead = Serial.readBytesUntil('\n', buffer, sizeof(buffer) - 1);
-         buffer[bytesRead] = '\0';  // Null-terminate the string
-//      }
-     Serial.println(F("Exiting Test Menu"));
-  }
+  myData.id = BOARD_ID;
+  myData.temp = readTemperature();
+  myData.hum = readHumidity();
+  myData.bat = readBattery();
+  myData.readingId = 0;
+
+  Serial.print("\nTemp ");
+  Serial.println(myData.temp);  
+  Serial.print(F("Humidity "));
+  Serial.println(myData.hum);
+
+  Serial.print(F("Board "));
+  Serial.println(BOARD_ID);
+  
+//  rawA0();  // display raw A0 Reading
+    
+  esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
+  // 10 characters in a line, 4 lines at text size 2
+  if (displayOK){
+    sprintf(buffer,"Batt %2.0f   Temp  %2.0f  Humidit %2.0f",myData.bat, myData.temp,myData.hum);
+    displayWrite(0,1,2,buffer);
+
+    display.setCursor(0,line5);  // line 5 on the display
+    display.print("Xmt");
+    display.setCursor(40,line5);
+    display.print(dataSent);
+    display.display();
+    
+    delay(4000);
+//    readVoltage();
+//    delay(4000);  // just looking to see what the VCC is will overwrite xmit status
+    }
+
+  digitalWrite(DHTPWR,LOW); // Hopefully it's low now
+  digitalWrite(LED_BUILTIN, HIGH);   // don't really need to do this
+  Serial.println(F("Shutting down now, but I'll be back."));
+  display.clearDisplay();
+  display.display();
+
+  ESP.deepSleepInstant(downTime);
+}   // End of Setup
+
+//void rawA0()
+//  { // display raw A0 reading
+//    display.clearDisplay();
+//    display.setCursor(0,0);
+//    float b = analogRead(0);
+//    Serial.print(F("Analog in "));
+//    Serial.println(b);
+//    sprintf(buffer,"A0 %3.1f",b);
+//    displayWrite(0,1,2,buffer);
+//    display.display();
+//    delay(5000);
+//  }
 void loop() 
   {
-    testMenu();
-    // you get here if jumper is on test pin
-    //  digitalWrite(DHTPWR, LOW); // Turn off support devices
-    delay(5000);  //wait a bit
-    doStuff();    // send status again
+
   }
