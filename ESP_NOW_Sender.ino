@@ -184,7 +184,7 @@ void OnDataSent(uint8_t *mac_addr, uint8_t sendStatus) {
  void doStuff(){
      digitalWrite(DHTPWR, HIGH); // Turn on support devices
      printBattery();
-     Serial.println(F("delay 2 seconds DHTPWR high."));
+     Serial.println(F("delay 2 seconds."));
      delay(2000);
         
       myData.id = BOARD_ID;
@@ -214,6 +214,8 @@ void OnDataSent(uint8_t *mac_addr, uint8_t sendStatus) {
           display.display();
           delay(4000);
            }
+         else
+          Serial.println(F("Problem writing to display."));
     
       digitalWrite(DHTPWR,LOW); // Hopefully DHT is low now
       // turn off LEDs
@@ -278,7 +280,9 @@ void setup() {
   esp_now_register_send_cb(OnDataSent);
   
   esp_now_add_peer(broadcastAddress, ESP_NOW_ROLE_SLAVE, 1, NULL, 0);
-
+  
+  doStuff();
+  
      if (digitalRead(TESTPin) == LOW)
         Serial.println(F("TESTPin is Low, In TEST MODE."));
      else
@@ -289,9 +293,21 @@ void setup() {
         }
 }
   /********************* End of Setup *************/
-
+void testMenu()
+  {
+    int bytesRead = 0;
+    Serial.println(F("Test Menu"));
+    displayWrite(0,line1,1,"Test Menu make selection",1);
+//    if (Serial.available())
+//      {
+         bytesRead = Serial.readBytesUntil('\n', buffer, sizeof(buffer) - 1);
+         buffer[bytesRead] = '\0';  // Null-terminate the string
+//      }
+     Serial.println(F("Exiting Test Menu"));
+  }
 void loop() 
   {
+    testMenu();
     // you get here if jumper is on test pin
     //  digitalWrite(DHTPWR, LOW); // Turn off support devices
     delay(5000);  //wait a bit
