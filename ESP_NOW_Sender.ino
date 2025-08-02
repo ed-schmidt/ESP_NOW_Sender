@@ -287,6 +287,7 @@ void testMenu()
     displayWrite(0,line1,2,"Test Menu",1);
 //    if (Serial.available())
 //      {
+// doesn't wait for \n ????????
          bytesRead = Serial.readBytesUntil('\n', buffer, sizeof(buffer) - 1);
          buffer[bytesRead] = '\0';  // Null-terminate the string
 //      }
