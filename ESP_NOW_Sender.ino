@@ -30,17 +30,22 @@
  *OUTPUT    15    D8    G     GND
  *          3.3         5V    5V
  */
- // Board version 1.5 Changes to IO
-
-char BornOn[21] = "  Build   2025-07-29";
+ /*
+  *  Board version 1.7 Changes: 0/802/2025
+  * 1. Battery Voltage compare is 2K : 2K for 3V input which cuts the voltage in half
+  * so by calculating the percentage of A0 against 1024
+  * I can determine the fill voltage of the battery
+  * see readBattery()
+ */
+char BornOn[21] = "  Build   2025-08-02";
 // Set your Board ID (ESP32 Sender #1 = BOARD_ID 1, ESP32 Sender #2 = BOARD_ID 2, etc)
-#define BOARD_ID 6 //Garden board 2 is garage
+#define BOARD_ID 6 //Garden board 2 is garage, board 3 mailbox
 #define DHTPIN 13     // 7 Digital pin connected to the DHT sensor
 #define DHTPWR 15     // D8  GPIO12 POWER TO TEMP SENSOR
 #define LED_FAILURE 0  // D3
 
 #define PIR 12          // D6 GPIO13
-#define TESTPin 14      // D5 GPIO 14 see if I can use it for a test
+#define TESTPin 14      // D5 GPIO 14 Jumper low for test
 #define DHTTYPE    DHT22     // DHT 22 (AM2302)
 
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
@@ -80,12 +85,12 @@ bool displayOK = false;
 char dataSent[8];
 
 constexpr char WIFI_SSID[] = "SLAN";
-/*
+/*************************************
  * 
  *  Done with all the definitions 
  * 
  * 
- */
+ *************************************/
 
 void displayWrite(int x, int y,int size,String msg,int clear = 1) 
   {
@@ -99,7 +104,6 @@ void displayWrite(int x, int y,int size,String msg,int clear = 1)
     }
   }
   
-
 int32_t getWiFiChannel(const char *ssid) {
   if (int32_t n = WiFi.scanNetworks()) {
     for (uint8_t i=0; i<n; i++) {
@@ -119,34 +123,33 @@ float readTemperature() {
       t = dht.readTemperature(true); 
     }
   return t;
-}
+  }
 
 float readHumidity() {
   float h = dht.readHumidity();
   return h;
-}
+  }
 
 float readBattery() {
+  /*
+   * voltage is divided by 2
+   * take the percentage of the reading * 2 > 1024
+   * add 1 to that result and multiply it by 3.2 
+   * and you have the input voltage
+   */
   int x = analogRead(0);
-
-  if (x > 1000)
-    return float(1.0);
-  else if (x > 870) // 15%
-    return float(0.0);
-  else
-    return float(-1.0);
+  float fullv = 2.0 * float(x);
+  float diff = fullv - 1024;
+  float pct = diff / 1024.0 + 1.0;
+  return(3.20 * pct);
 }
 
 void printBattery() {
   // this is reading 3.3volts would be 100 so reading 82 is a percentage
   Serial.print(F("Battery: "));
   float x = readBattery();
-  if (x > 1000)
-    Serial.println(F("Good"));
-  else if (x > 870) // 15%
-    Serial.println(F(" OK "));
-  else
-    Serial.println(F("Bad "));
+  Serial.print(readBattery());
+  Serial.println(F(" volts"));
 }
 
 // Callback when data is sent
@@ -191,7 +194,7 @@ void OnDataSent(uint8_t *mac_addr, uint8_t sendStatus) {
       esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
       // 10 characters in a line, 4 lines at text size 2
       if (displayOK){
-          sprintf(buffer,"Batt %2.0f   Temp  %2.0f  Humidit %2.0f",myData.bat, myData.temp,myData.hum);
+          sprintf(buffer,"Batt %2.2f Temp  %2.0f  Humidit %2.0f",myData.bat, myData.temp,myData.hum);
           displayWrite(0,1,2,buffer);
       
           display.setCursor(0,line5);  // line 5 on the display
@@ -208,13 +211,20 @@ void OnDataSent(uint8_t *mac_addr, uint8_t sendStatus) {
       // turn off LEDs
       digitalWrite(LED_FAILURE, LOW);
       digitalWrite(LED_BUILTIN, HIGH);   // Turn it off
-      Serial.println(F("Bilt-in LED off"));
+      Serial.println(F("Built-in LED off"));
       display.clearDisplay();
       display.display();
       Serial.println(F("Done doing stuff."));
       delay(1000);      
  }  // done doing stuff
- 
+
+void displayA0()
+  {
+    int X = analogRead(0);
+    sprintf(buffer,"A0 %2d",X);
+    displayWrite(0,1,2,buffer,1);
+  }
+  
 void setup() {
   //Init Serial Monitor
   Serial.begin(115200);
@@ -280,22 +290,11 @@ void setup() {
         }
 }
   /********************* End of Setup *************/
-void testMenu()
-  {
-    int bytesRead = 0;
-    Serial.println(F("Test Menu"));
-    displayWrite(0,line1,2,"Test Menu",1);
-//    if (Serial.available())
-//      {
-// doesn't wait for \n ????????
-         bytesRead = Serial.readBytesUntil('\n', buffer, sizeof(buffer) - 1);
-         buffer[bytesRead] = '\0';  // Null-terminate the string
-//      }
-     Serial.println(F("Exiting Test Menu"));
-  }
+
 void loop() 
   {
-    testMenu();
+
+    displayA0();
     // you get here if jumper is on test pin
     //  digitalWrite(DHTPWR, LOW); // Turn off support devices
     delay(5000);  //wait a bit
