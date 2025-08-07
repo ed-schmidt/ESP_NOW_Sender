@@ -11,9 +11,21 @@
 
 /*Build 2025-06-10    -- Voltage divider was a nice idea but I don't know what the input voltage will be
 **                   -- changed to monitoring 3.3 line if it goes below max then it goes from 'good' to 'OK' if it is 15% less report 'Bad'
-*       2025-07-01  -- Changed IO to match home made PC Board layout
-*       2025-07-21  -- new PC Board Design
-*/
+**       2025-07-01  -- Changed IO to match home made PC Board layout
+**       2025-07-21  -- new PC Board Design
+
+  *  Board version 1.7 Changes: 08/02/2025
+  * 1. Battery Voltage compare is 2K : 2K for 3V input which cuts the voltage in half
+  * so by calculating the percentage of A0 against 1024
+  * I can determine the fill voltage of the battery
+  * see readBattery()
+
+ 2025-08-07
+ USSUES:
+  1. Jumper to read battery voltage causes MCP1700 to get super hot on battery power
+  2. Deep sleep causes LED_FAILURE to go to an ON state
+    Both require hardware changes
+ */
 
 #include <espnow.h>
 #include <ESP8266WiFi.h>
@@ -30,16 +42,9 @@
  *OUTPUT    15    D8    G     GND
  *          3.3         5V    5V
  */
- /*
-  *  Board version 1.7 Changes: 0/802/2025
-  * 1. Battery Voltage compare is 2K : 2K for 3V input which cuts the voltage in half
-  * so by calculating the percentage of A0 against 1024
-  * I can determine the fill voltage of the battery
-  * see readBattery()
- */
 char BornOn[21] = "  Build   2025-08-02";
 // Set your Board ID (ESP32 Sender #1 = BOARD_ID 1, ESP32 Sender #2 = BOARD_ID 2, etc)
-#define BOARD_ID 6 //Garden board 2 is garage, board 3 mailbox
+#define BOARD_ID 1 //Garden board 2 is garage, board 1 mailbox
 #define DHTPIN 13     // 7 Digital pin connected to the DHT sensor
 #define DHTPWR 15     // D8  GPIO12 POWER TO TEMP SENSOR
 #define LED_FAILURE 0  // D3
@@ -208,10 +213,10 @@ void OnDataSent(uint8_t *mac_addr, uint8_t sendStatus) {
           Serial.println(F("Problem writing to display."));
     
       digitalWrite(DHTPWR,LOW); // Hopefully DHT is low now
-      // turn off LEDs
-      digitalWrite(LED_FAILURE, LOW);
-      digitalWrite(LED_BUILTIN, HIGH);   // Turn it off
-      Serial.println(F("Built-in LED off"));
+      // leave LEDs as OnDataSent set them
+//      digitalWrite(LED_FAILURE, HIGH);
+//      digitalWrite(LED_BUILTIN, HIGH);   // Turn it off
+//      Serial.println(F("Built-in LED off, Red LED off"));
       display.clearDisplay();
       display.display();
       Serial.println(F("Done doing stuff."));
@@ -235,7 +240,7 @@ void setup() {
   pinMode(TESTPin, INPUT);
   
 //  digitalWrite(LED_BUILTIN, LOW);   // turn the LED on (Reverse logic)
-  digitalWrite(LED_FAILURE, LOW);  // WHY DON'T THESE TURN ON?
+  digitalWrite(LED_FAILURE, LOW);  
   digitalWrite(DHTPWR, HIGH); // Turn on support devices
   dht.begin();
 
@@ -286,6 +291,7 @@ void setup() {
         {
         Serial.println(F("TESTPin is High, Deep Sleep Enabled."));
         Serial.println(F("Shutting down now, but I'll be back."));
+//        delay(5000);  // when does that LED turn on
         ESP.deepSleepInstant(downTime);          
         }
 }
