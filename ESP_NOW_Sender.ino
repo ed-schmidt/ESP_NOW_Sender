@@ -292,6 +292,11 @@ void setup() {
         Serial.println(F("TESTPin is High, Deep Sleep Enabled."));
         Serial.println(F("Shutting down now, but I'll be back."));
 //        delay(5000);  // when does that LED turn on
+        Serial.println(F("set it off"));
+        digitalWrite(LED_FAILURE, LOW);  
+        delay(1000);  // you can see it go off for 1 second then back on
+        Serial.println(F("setting FAILURE_LED to input"));
+        pinMode(LED_FAILURE, INPUT);
         ESP.deepSleepInstant(downTime);          
         }
 }
