@@ -239,7 +239,7 @@ void setup() {
   pinMode(LED_FAILURE, OUTPUT);
   pinMode(TESTPin, INPUT);
   
-//  digitalWrite(LED_BUILTIN, LOW);   // turn the LED on (Reverse logic)
+  digitalWrite(LED_BUILTIN, LOW);   // turn the LED on (Reverse logic)
   digitalWrite(LED_FAILURE, LOW);  
   digitalWrite(DHTPWR, HIGH); // Turn on support devices
   dht.begin();
@@ -304,7 +304,7 @@ void setup() {
 
 void loop() 
   {
-
+    digitalWrite(LED_BUILTIN,LOW);  // TURN IT ON
     displayA0();
     // you get here if jumper is on test pin
     //  digitalWrite(DHTPWR, LOW); // Turn off support devices
