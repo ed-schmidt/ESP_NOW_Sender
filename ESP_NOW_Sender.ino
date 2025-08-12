@@ -25,6 +25,16 @@
   1. Jumper to read battery voltage causes MCP1700 to get super hot on battery power
   2. Deep sleep causes LED_FAILURE to go to an ON state
     Both require hardware changes
+  *
+  *
+  * 2025-08-09
+  *   False alarm, Not sure what happened with that board, current board is fine.
+  *   Voltage Divider 1M and 1Meg Without components getting the 50% that I expect
+  *   With components Voltage is down 2/3 reading of 1.77v
+  *   
+  * 2025-08-12
+  *   All boards probably will be a little different
+  *   Calabrate to 5v USB 322 --- 0.0162
  */
 
 #include <espnow.h>
@@ -42,7 +52,7 @@
  *OUTPUT    15    D8    G     GND
  *          3.3         5V    5V
  */
-char BornOn[21] = "  Build   2025-08-02";
+char BornOn[21] = "  Build   2025-08-12";
 // Set your Board ID (ESP32 Sender #1 = BOARD_ID 1, ESP32 Sender #2 = BOARD_ID 2, etc)
 #define BOARD_ID 1 //Garden board 2 is garage, board 1 mailbox
 #define DHTPIN 13     // 7 Digital pin connected to the DHT sensor
@@ -142,11 +152,11 @@ float readBattery() {
    * add 1 to that result and multiply it by 3.2 
    * and you have the input voltage
    */
-  int x = analogRead(0);
-  float fullv = 2.0 * float(x);
-  float diff = fullv - 1024;
-  float pct = diff / 1024.0 + 1.0;
-  return(3.20 * pct);
+//  int x = analogRead(0)*;
+//  float fullv = float(x) / 1024;  // find percentage of full
+//  float diff = fullv - 1024;
+//  float pct = diff / 1024.0 + 1.0;
+  return(float(analogRead(0)) * 0.0163);
 }
 
 void printBattery() {
@@ -226,7 +236,9 @@ void OnDataSent(uint8_t *mac_addr, uint8_t sendStatus) {
 void displayA0()
   {
     int X = analogRead(0);
-    sprintf(buffer,"A0 %2d",X);
+    Serial.print(F("Analog reading "));
+    Serial.println(X);
+    sprintf(buffer,"A0 %4d",X);
     displayWrite(0,1,2,buffer,1);
   }
   
